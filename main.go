@@ -1,9 +1,47 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
 	"strings"
 )
+
+func CreateFileIfNotExists(sail_or_board string, fileloc string) bool {
+	var sail_header = []string{"Brand", "Name", "Year", "Cost", "Size (Sq Meter)", "Num Battens", "Has Sailbag", "New", "Notes"}
+	var board_header = []string{"Brand", "Name", "Year", "Cost", "Length (cm)", "Liters", "Inflatable", "New", "Notes"}
+
+	success := true
+
+	if _, err := os.Stat(fileloc); os.IsNotExist(err) {
+		file, err := os.Create(fileloc)
+		if err != nil {
+			fmt.Printf("Could not create file at %s", fileloc)
+			success = false
+		}
+		defer file.Close()
+
+		if success {
+			writer := csv.NewWriter(file)
+			defer writer.Flush()
+
+			if sail_or_board == "sail" {
+				err := writer.Write(sail_header)
+				if err != nil {
+					fmt.Printf("Could not write header to sail file at %s", fileloc)
+					success = false
+				}
+			} else {
+				err := writer.Write(board_header)
+				if err != nil {
+					fmt.Printf("Could not write header to board file at %s", fileloc)
+					success = false
+				}
+			}
+		}
+	}
+	return success
+}
 
 type Sail struct {
 	brand       string
@@ -131,12 +169,22 @@ func (b Board) showBoard() {
 	fmt.Printf("%d %s by %s\n", b.year, b.name, b.brand)
 	fmt.Printf("Cost: %.2f\n", b.cost)
 	fmt.Printf("Length: %d cm.  Liters: %d\n", b.length_cm, b.liters)
-	fmt.Printf("Inflatables: %t\n", b.inflatable)
-	fmt.Printf("Condition: %t\n", b.new)
+	fmt.Printf("Inflatable: %t\n", b.inflatable)
+	fmt.Printf("New: %t\n", b.new)
 	fmt.Println(b.notes)
 }
 
 func main() {
+	sail_fileloc := "./data/saved_sails.csv"
+	board_fileloc := "./data/saved_boards.csv"
+
+	sail_file_success := CreateFileIfNotExists("sail", sail_fileloc)
+	board_file_success := CreateFileIfNotExists("board", board_fileloc)
+
+	if !sail_file_success || !board_file_success {
+		os.Exit(1)
+	}
+
 	add_another := true
 	for add_another == true {
 		fmt.Println("Do you want to add something? Sail or a board?")
